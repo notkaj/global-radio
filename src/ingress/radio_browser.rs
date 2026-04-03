@@ -3,7 +3,12 @@ use std::sync::OnceLock;
 use color_eyre::Result;
 use radiobrowser::{self, ApiCountry, ApiStation, CountryOrder, RadioBrowserAPI};
 
-pub static CONTEXT: OnceLock<Context> = OnceLock::new();
+static CONTEXT: OnceLock<Context> = OnceLock::new();
+pub async fn init_context() -> Result<()> {
+    let context = Context::build().await?;
+    CONTEXT.get_or_init(|| context);
+    Ok(())
+}
 
 pub fn context() -> &'static Context {
     let context = CONTEXT.get();

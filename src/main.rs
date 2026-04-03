@@ -4,7 +4,7 @@ use ratatui::{DefaultTerminal, Frame};
 
 use crate::{
     component::{Component, root::Root},
-    ingress::radio_browser::{CONTEXT, Context},
+    ingress::radio_browser::init_context,
 };
 
 pub mod component;
@@ -38,9 +38,7 @@ impl App<Root> {
     }
 
     pub async fn init(&mut self) -> color_eyre::Result<()> {
-        let context = Context::build().await?;
-        CONTEXT.get_or_init(|| context);
-        Ok(())
+        init_context().await
     }
 
     /// Run the application's main loop.
@@ -59,7 +57,9 @@ impl App<Root> {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/master/examples>
     fn draw(&self, frame: &mut Frame) {
-        self.root_component.draw(frame, frame.area());
+        if self.root_component.draw(frame, frame.area()).is_err() {
+            panic!("App: failed to draw()")
+        }
         // let title = Line::from("Ratatui Simple Template")
         //     .bold()
         //     .blue()
@@ -78,14 +78,13 @@ impl App<Root> {
     /// Reads the crossterm events and updates the state of [`App`].
     async fn handle_crossterm_events(&mut self) -> color_eyre::Result<()> {
         let event = self.event_stream.next().fuse().await;
-        match event {
-            Some(Ok(evt)) => match evt {
+        if let Some(Ok(e)) = event {
+            match e {
                 Event::Key(key) if key.kind == KeyEventKind::Press => self.on_key_event(key),
                 Event::Mouse(_) => {}
                 Event::Resize(_, _) => {}
                 _ => {}
-            },
-            _ => {}
+            }
         }
         Ok(())
     }
